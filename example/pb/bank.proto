@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package pb;
+
+service Bank {
+	rpc Deposit(DepositRequest) returns (DepositReply);
+}
+
+message DepositRequest {
+	string account = 1;
+	double amount = 2;
+}
+
+message DepositReply {
+	string account = 1;
+	double balance = 2;
+}

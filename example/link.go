@@ -8,5 +8,6 @@ import (
 func init() {
 	// Add client generated commands to cobra's root cmd.
 	cmd.RootCmd.AddCommand(pb.AuthClientCommand)
+	cmd.RootCmd.AddCommand(pb.BankClientCommand)
 	cmd.RootCmd.AddCommand(pb.StoreClientCommand)
 }

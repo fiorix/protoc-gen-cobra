@@ -13,7 +13,6 @@ message LoginRequest {
 }
 
 message LoginResponse {
-	string Error = 1;
 	string Token = 2;
 }
 
@@ -22,5 +21,4 @@ message LogoutRequest {
 }
 
 message LogoutResponse {
-	string Error = 1;
 }

@@ -7,10 +7,12 @@ Package pb is a generated protocol buffer package.
 
 It is generated from these files:
 	auth.proto
+	bank.proto
 	store.proto
 
 It has these top-level commands:
 	AuthClientCommand
+	BankClientCommand
 	StoreClientCommand
 */
 
@@ -21,21 +23,21 @@ import fmt "fmt"
 import math "math"
 
 import (
-	tls "crypto/tls"
+	ioutil "io/ioutil"
+	pflag "github.com/spf13/pflag"
+	context "context"
+	credentials "google.golang.org/grpc/credentials"
 	grpc "google.golang.org/grpc"
 	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
-	ioutil "io/ioutil"
 	json "encoding/json"
-	log "log"
-	time "time"
-	credentials "google.golang.org/grpc/credentials"
-	filepath "path/filepath"
-	pflag "github.com/spf13/pflag"
 	template "text/template"
-	x509 "crypto/x509"
+	tls "crypto/tls"
 	cobra "github.com/spf13/cobra"
-	context "context"
+	log "log"
 	os "os"
+	filepath "path/filepath"
+	time "time"
+	x509 "crypto/x509"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -50,21 +52,21 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ cobra.Command
-var _ context.Context
-var _ pflag.FlagSet
-var _ template.Template
-var _ x509.Certificate
-var _ os.File
-var _ tls.Config
 var _ json.Encoder
+var _ template.Template
+var _ tls.Config
+var _ cobra.Command
 var _ log.Logger
-var _ time.Time
-var _ credentials.AuthInfo
+var _ os.File
 var _ filepath.WalkFunc
-var _ grpc.ClientConn
+var _ time.Time
+var _ x509.Certificate
 var _ iocodec.Encoder
 var _ = ioutil.Discard
+var _ pflag.FlagSet
+var _ context.Context
+var _ credentials.AuthInfo
+var _ grpc.ClientConn
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.

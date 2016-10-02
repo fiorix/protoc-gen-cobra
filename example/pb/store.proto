@@ -18,7 +18,6 @@ message SetRequest {
 }
 
 message SetResponse {
-	string Error = 1;
 }
 
 message GetRequest {
@@ -26,7 +25,6 @@ message GetRequest {
 }
 
 message GetResponse {
-	string Error = 1;
 	Object Object = 2;
 }
 
@@ -35,6 +33,5 @@ message MultiGetRequest {
 }
 
 message MultiGetResponse {
-	repeated string Error = 1;
 	repeated Object Object = 2;
 }
