@@ -212,7 +212,6 @@ func _Dial{{.Name}}() (*grpc.ClientConn, {{.Name}}Client, error) {
 		grpc.WithTimeout(cfg.Timeout),
 	}
 	if cfg.TLS {
-		// TODO: TLS setup for CA and client cert.
 		tlsConfig := tls.Config{}
 		if cfg.InsecureSkipVerify {
 			tlsConfig.InsecureSkipVerify = true
@@ -338,6 +337,9 @@ func init() {
 var generateSubcmdTemplate = template.Must(template.New("subcmd").Parse(generateSubcmdTemplateCode))
 
 func (c *client) generateSubcmd(servName string, method *pb.MethodDescriptorProto) {
+	if method.GetClientStreaming() || method.GetServerStreaming() {
+		return // TODO: handle streams correctly
+	}
 	origMethName := method.GetName()
 	methName := generator.CamelCase(origMethName)
 	if reservedClientName[methName] {

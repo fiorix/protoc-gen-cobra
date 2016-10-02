@@ -938,33 +938,6 @@ func (g *Generator) generateImports() {
 	g.P("import " + g.Pkg["proto"] + " " + strconv.Quote(g.ImportPrefix+"github.com/golang/protobuf/proto"))
 	g.P("import " + g.Pkg["fmt"] + ` "fmt"`)
 	g.P("import " + g.Pkg["math"] + ` "math"`)
-	for i, s := range g.file.Dependency {
-		fd := g.fileByName(s)
-		// Do not import our own package.
-		if fd.PackageName() == g.packageName {
-			continue
-		}
-		filename := fd.goFileName()
-		// By default, import path is the dirname of the Go filename.
-		importPath := path.Dir(filename)
-		if substitution, ok := g.ImportMap[s]; ok {
-			importPath = substitution
-		}
-		importPath = g.ImportPrefix + importPath
-		// Skip weak imports.
-		if g.weak(int32(i)) {
-			g.P("// skipping weak import ", fd.PackageName(), " ", strconv.Quote(importPath))
-			continue
-		}
-		// We need to import all the dependencies, even if we don't reference them,
-		// because other code and tools depend on having the full transitive closure
-		// of protocol buffer types in the binary.
-		pname := fd.PackageName()
-		if _, ok := g.usedPackages[pname]; !ok {
-			pname = "_"
-		}
-		g.P("import ", pname, " ", strconv.Quote(importPath))
-	}
 	g.P()
 	// TODO: may need to worry about uniqueness across plugins
 	for _, p := range plugins {

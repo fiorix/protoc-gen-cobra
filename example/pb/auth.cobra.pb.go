@@ -23,21 +23,21 @@ import fmt "fmt"
 import math "math"
 
 import (
+	cobra "github.com/spf13/cobra"
+	context "context"
 	ioutil "io/ioutil"
 	pflag "github.com/spf13/pflag"
-	context "context"
 	credentials "google.golang.org/grpc/credentials"
+	filepath "path/filepath"
+	os "os"
 	grpc "google.golang.org/grpc"
+	log "log"
+	x509 "crypto/x509"
 	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
 	json "encoding/json"
 	template "text/template"
-	tls "crypto/tls"
-	cobra "github.com/spf13/cobra"
-	log "log"
-	os "os"
-	filepath "path/filepath"
 	time "time"
-	x509 "crypto/x509"
+	tls "crypto/tls"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -52,21 +52,21 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ json.Encoder
-var _ template.Template
-var _ tls.Config
 var _ cobra.Command
-var _ log.Logger
-var _ os.File
-var _ filepath.WalkFunc
-var _ time.Time
-var _ x509.Certificate
-var _ iocodec.Encoder
+var _ context.Context
 var _ = ioutil.Discard
 var _ pflag.FlagSet
-var _ context.Context
 var _ credentials.AuthInfo
+var _ filepath.WalkFunc
+var _ os.File
 var _ grpc.ClientConn
+var _ log.Logger
+var _ iocodec.Encoder
+var _ json.Encoder
+var _ template.Template
+var _ time.Time
+var _ tls.Config
+var _ x509.Certificate
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -142,7 +142,6 @@ func _DialAuth() (*grpc.ClientConn, AuthClient, error) {
 		grpc.WithTimeout(cfg.Timeout),
 	}
 	if cfg.TLS {
-		// TODO: TLS setup for CA and client cert.
 		tlsConfig := tls.Config{}
 		if cfg.InsecureSkipVerify {
 			tlsConfig.InsecureSkipVerify = true

@@ -9,21 +9,21 @@ import fmt "fmt"
 import math "math"
 
 import (
-	filepath "path/filepath"
-	time "time"
-	x509 "crypto/x509"
-	pflag "github.com/spf13/pflag"
-	context "context"
-	credentials "google.golang.org/grpc/credentials"
+	log "log"
 	grpc "google.golang.org/grpc"
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
-	ioutil "io/ioutil"
 	json "encoding/json"
 	template "text/template"
+	time "time"
 	tls "crypto/tls"
+	x509 "crypto/x509"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	context "context"
+	ioutil "io/ioutil"
+	pflag "github.com/spf13/pflag"
 	cobra "github.com/spf13/cobra"
-	log "log"
+	filepath "path/filepath"
 	os "os"
+	credentials "google.golang.org/grpc/credentials"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -32,21 +32,21 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ grpc.ClientConn
-var _ iocodec.Encoder
+var _ cobra.Command
+var _ context.Context
 var _ = ioutil.Discard
 var _ pflag.FlagSet
-var _ context.Context
 var _ credentials.AuthInfo
-var _ tls.Config
+var _ filepath.WalkFunc
+var _ os.File
+var _ grpc.ClientConn
+var _ log.Logger
+var _ iocodec.Encoder
 var _ json.Encoder
 var _ template.Template
-var _ os.File
-var _ cobra.Command
-var _ log.Logger
-var _ x509.Certificate
-var _ filepath.WalkFunc
 var _ time.Time
+var _ tls.Config
+var _ x509.Certificate
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -122,7 +122,6 @@ func _DialBank() (*grpc.ClientConn, BankClient, error) {
 		grpc.WithTimeout(cfg.Timeout),
 	}
 	if cfg.TLS {
-		// TODO: TLS setup for CA and client cert.
 		tlsConfig := tls.Config{}
 		if cfg.InsecureSkipVerify {
 			tlsConfig.InsecureSkipVerify = true
