@@ -133,22 +133,22 @@ func (c *client) generateService(file *generator.FileDescriptor, service *pb.Ser
 	servName := generator.CamelCase(origServName)
 
 	c.P()
-	c.generateCmd(servName)
+	c.generateCommand(servName)
 	c.P()
 	for _, method := range service.Method {
-		c.generateSubcmd(servName, method)
+		c.generateSubcommand(servName, method)
 	}
 	c.P()
 }
 
-var generateCmdTemplateCode = `
-var _Default{{.Name}}ClientCmdConfig = _New{{.Name}}ClientCmdConfig()
+var generateCommandTemplateCode = `
+var _Default{{.Name}}ClientCommandConfig = _New{{.Name}}ClientCommandConfig()
 
 func init() {
-	_Default{{.Name}}ClientCmdConfig.AddFlags({{.Name}}ClientCommand.PersistentFlags())
+	_Default{{.Name}}ClientCommandConfig.AddFlags({{.Name}}ClientCommand.PersistentFlags())
 }
 
-type _{{.Name}}ClientCmdConfig struct {
+type _{{.Name}}ClientCommandConfig struct {
 	ServerAddr string
 	RequestFile string
 	PrintSampleRequest bool
@@ -161,7 +161,7 @@ type _{{.Name}}ClientCmdConfig struct {
 	KeyFile string
 }
 
-func _New{{.Name}}ClientCmdConfig() *_{{.Name}}ClientCmdConfig {
+func _New{{.Name}}ClientCommandConfig() *_{{.Name}}ClientCommandConfig {
 	addr := os.Getenv("SERVER_ADDR")
 	if addr == "" {
 		addr = "localhost:8080"
@@ -174,7 +174,7 @@ func _New{{.Name}}ClientCmdConfig() *_{{.Name}}ClientCmdConfig {
 	if outfmt == "" {
 		outfmt = "yaml"
 	}
-	return &_{{.Name}}ClientCmdConfig{
+	return &_{{.Name}}ClientCommandConfig{
 		ServerAddr: addr,
 		RequestFile: os.Getenv("REQUEST_FILE"),
 		PrintSampleRequest: os.Getenv("PRINT_SAMPLE_REQUEST") != "",
@@ -188,7 +188,7 @@ func _New{{.Name}}ClientCmdConfig() *_{{.Name}}ClientCmdConfig {
 	}
 }
 
-func (o *_{{.Name}}ClientCmdConfig) AddFlags(fs *pflag.FlagSet) {
+func (o *_{{.Name}}ClientCommandConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ServerAddr, "server-addr", "s", o.ServerAddr, "server address in form of host:port")
 	fs.StringVarP(&o.RequestFile, "request-file", "f", o.RequestFile, "client request file (extension must be yaml, json, or xml)")
 	fs.BoolVar(&o.PrintSampleRequest, "print-sample-request", o.PrintSampleRequest, "print sample request file and exit")
@@ -206,7 +206,7 @@ var {{.Name}}ClientCommand = &cobra.Command{
 }
 
 func _Dial{{.Name}}() (*grpc.ClientConn, {{.Name}}Client, error) {
-	cfg := _Default{{.Name}}ClientCmdConfig
+	cfg := _Default{{.Name}}ClientCommandConfig
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 		grpc.WithTimeout(cfg.Timeout),
@@ -250,7 +250,7 @@ func _Dial{{.Name}}() (*grpc.ClientConn, {{.Name}}Client, error) {
 type _{{.Name}}RoundTripFunc func(cli {{.Name}}Client) (out interface{}, err error)
 
 func _{{.Name}}RoundTrip(v interface{}, fn _{{.Name}}RoundTripFunc) error {
-		cfg := _Default{{.Name}}ClientCmdConfig
+		cfg := _Default{{.Name}}ClientCommandConfig
 		var e iocodec.EncoderMaker
 		var ok bool
 		if cfg.ResponseFormat == "" {
@@ -297,11 +297,11 @@ func _{{.Name}}RoundTrip(v interface{}, fn _{{.Name}}RoundTripFunc) error {
 }
 `
 
-var generateCmdTemplate = template.Must(template.New("cmd").Parse(generateCmdTemplateCode))
+var generateCommandTemplate = template.Must(template.New("cmd").Parse(generateCommandTemplateCode))
 
-func (c *client) generateCmd(servName string) {
+func (c *client) generateCommand(servName string) {
 	var b bytes.Buffer
-	err := generateCmdTemplate.Execute(&b, struct {
+	err := generateCommandTemplate.Execute(&b, struct {
 		Name    string
 		UseName string
 	}{
@@ -315,8 +315,8 @@ func (c *client) generateCmd(servName string) {
 	c.P()
 }
 
-var generateSubcmdTemplateCode = `
-var _{{.FullName}}ClientCmd = &cobra.Command{
+var generateSubcommandTemplateCode = `
+var _{{.FullName}}ClientCommand = &cobra.Command{
 	Use: "{{.UseName}}",
 	Run: func(cmd *cobra.Command, args []string) {
 		var in {{.InputType}}
@@ -330,13 +330,13 @@ var _{{.FullName}}ClientCmd = &cobra.Command{
 }
 
 func init() {
-	{{.ServiceName}}ClientCommand.AddCommand(_{{.FullName}}ClientCmd)
+	{{.ServiceName}}ClientCommand.AddCommand(_{{.FullName}}ClientCommand)
 }
 `
 
-var generateSubcmdTemplate = template.Must(template.New("subcmd").Parse(generateSubcmdTemplateCode))
+var generateSubcommandTemplate = template.Must(template.New("subcmd").Parse(generateSubcommandTemplateCode))
 
-func (c *client) generateSubcmd(servName string, method *pb.MethodDescriptorProto) {
+func (c *client) generateSubcommand(servName string, method *pb.MethodDescriptorProto) {
 	if method.GetClientStreaming() || method.GetServerStreaming() {
 		return // TODO: handle streams correctly
 	}
@@ -348,7 +348,7 @@ func (c *client) generateSubcmd(servName string, method *pb.MethodDescriptorProt
 	_, typ := path.Split(method.GetInputType())
 	typ = strings.SplitN(typ, ".", 3)[2] // TODO: get type name without pkg
 	var b bytes.Buffer
-	err := generateSubcmdTemplate.Execute(&b, struct {
+	err := generateSubcommandTemplate.Execute(&b, struct {
 		Name        string
 		UseName     string
 		ServiceName string
