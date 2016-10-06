@@ -9,22 +9,22 @@ import fmt "fmt"
 import math "math"
 
 import (
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	io "io"
+	json "encoding/json"
 	log "log"
 	cobra "github.com/spf13/cobra"
-	context "golang.org/x/net/context"
-	io "io"
-	ioutil "io/ioutil"
-	x509 "crypto/x509"
 	filepath "path/filepath"
-	grpc "google.golang.org/grpc"
-	json "encoding/json"
-	os "os"
+	ioutil "io/ioutil"
+	time "time"
 	tls "crypto/tls"
-	credentials "google.golang.org/grpc/credentials"
+	os "os"
 	pflag "github.com/spf13/pflag"
 	template "text/template"
-	time "time"
+	x509 "crypto/x509"
+	context "golang.org/x/net/context"
+	credentials "google.golang.org/grpc/credentials"
+	grpc "google.golang.org/grpc"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -33,21 +33,21 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ io.Reader
-var _ = ioutil.Discard
-var _ x509.Certificate
 var _ cobra.Command
-var _ context.Context
-var _ json.Encoder
-var _ os.File
-var _ tls.Config
 var _ filepath.WalkFunc
-var _ grpc.ClientConn
-var _ template.Template
+var _ = ioutil.Discard
 var _ time.Time
-var _ credentials.AuthInfo
+var _ tls.Config
+var _ os.File
 var _ pflag.FlagSet
+var _ template.Template
+var _ x509.Certificate
+var _ context.Context
+var _ credentials.AuthInfo
+var _ grpc.ClientConn
 var _ iocodec.Encoder
+var _ io.Reader
+var _ json.Encoder
 var _ log.Logger
 
 // This is a compile-time assertion to ensure that this generated file
@@ -84,7 +84,7 @@ func _NewCacheClientCommandConfig() *_CacheClientCommandConfig {
 	}
 	outfmt := os.Getenv("RESPONSE_FORMAT")
 	if outfmt == "" {
-		outfmt = "yaml"
+		outfmt = "json"
 	}
 	return &_CacheClientCommandConfig{
 		ServerAddr:         addr,
@@ -102,9 +102,9 @@ func _NewCacheClientCommandConfig() *_CacheClientCommandConfig {
 
 func (o *_CacheClientCommandConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ServerAddr, "server-addr", "s", o.ServerAddr, "server address in form of host:port")
-	fs.StringVarP(&o.RequestFile, "request-file", "f", o.RequestFile, "client request file (extension must be yaml, json, or xml)")
+	fs.StringVarP(&o.RequestFile, "request-file", "f", o.RequestFile, "client request file (must be json, yaml, or xml); use \"-\" for stdin + json")
 	fs.BoolVarP(&o.PrintSampleRequest, "print-sample-request", "p", o.PrintSampleRequest, "print sample request file and exit")
-	fs.StringVarP(&o.ResponseFormat, "response-format", "o", o.ResponseFormat, "response format (yaml, json, prettyjson, or xml)")
+	fs.StringVarP(&o.ResponseFormat, "response-format", "o", o.ResponseFormat, "response format (json, prettyjson, yaml, or xml)")
 	fs.DurationVar(&o.Timeout, "timeout", o.Timeout, "client connection timeout")
 	fs.BoolVar(&o.TLS, "tls", o.TLS, "enable tls")
 	fs.BoolVar(&o.InsecureSkipVerify, "tls-insecure-skip-verify", o.InsecureSkipVerify, "INSECURE: skip tls checks")
@@ -166,7 +166,7 @@ func _CacheRoundTrip(sample interface{}, fn _CacheRoundTripFunc) error {
 	var em iocodec.EncoderMaker
 	var ok bool
 	if cfg.ResponseFormat == "" {
-		em = iocodec.DefaultEncoders["yaml"]
+		em = iocodec.DefaultEncoders["json"]
 	} else {
 		em, ok = iocodec.DefaultEncoders[cfg.ResponseFormat]
 		if !ok {
