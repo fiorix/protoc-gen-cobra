@@ -2,6 +2,24 @@
 // source: bank.proto
 // DO NOT EDIT!
 
+/*
+	Package pb is a generated protocol buffer package.
+
+	It is generated from these files:
+		bank.proto
+		cache.proto
+		timer.proto
+
+	It has these top-level messages:
+		DepositRequest
+		DepositReply
+		SetRequest
+		SetResponse
+		GetRequest
+		GetResponse
+		TickRequest
+		TickResponse
+*/
 package pb
 
 import proto "github.com/golang/protobuf/proto"
@@ -19,6 +37,12 @@ import io "io"
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type DepositRequest struct {
 	Account string  `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`

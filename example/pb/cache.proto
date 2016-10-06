@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package pb;
+
+service Cache {
+	rpc Set(SetRequest) returns (SetResponse);
+	rpc Get(GetRequest) returns (GetResponse);
+
+	rpc MultiSet(stream SetRequest) returns (SetResponse);
+	rpc MultiGet(stream GetRequest) returns (stream GetResponse);
+}
+
+message SetRequest {
+	string key = 1;
+	string value = 2;
+}
+
+message SetResponse {
+}
+
+message GetRequest {
+	string key = 1;
+}
+
+message GetResponse {
+	string value = 1;
+}

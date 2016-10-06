@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package pb;
+
+service Timer {
+	rpc Tick(TickRequest) returns (stream TickResponse);
+}
+
+message TickRequest {
+	int32 interval = 1;
+}
+
+message TickResponse {
+	string time = 1;
+}
