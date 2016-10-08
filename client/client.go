@@ -54,6 +54,7 @@ var importPkgs = importPkg{
 	"cobra":       {ImportPath: "github.com/spf13/cobra", KnownType: "Command"},
 	"context":     {ImportPath: "golang.org/x/net/context", KnownType: "Context"},
 	"credentials": {ImportPath: "google.golang.org/grpc/credentials", KnownType: "AuthInfo"},
+	"envconfig":   {ImportPath: "github.com/kelseyhightower/envconfig", KnownType: "Decoder"},
 	"filepath":    {ImportPath: "path/filepath", KnownType: "WalkFunc"},
 	"grpc":        {ImportPath: "google.golang.org/grpc", KnownType: "ClientConn"},
 	"io":          {ImportPath: "io", KnownType: "Reader"},
@@ -61,6 +62,9 @@ var importPkgs = importPkg{
 	"ioutil":      {ImportPath: "io/ioutil", KnownType: "=Discard"},
 	"json":        {ImportPath: "encoding/json", KnownType: "Encoder"},
 	"log":         {ImportPath: "log", KnownType: "Logger"},
+	"net":         {ImportPath: "net", KnownType: "IP"},
+	"oauth":       {ImportPath: "google.golang.org/grpc/credentials/oauth", KnownType: "TokenSource"},
+	"oauth2":      {ImportPath: "golang.org/x/oauth2", KnownType: "Token"},
 	"os":          {ImportPath: "os", KnownType: "File"},
 	"pflag":       {ImportPath: "github.com/spf13/pflag", KnownType: "FlagSet"},
 	"template":    {ImportPath: "text/template", KnownType: "Template"},
@@ -145,48 +149,28 @@ func (c *client) generateService(file *generator.FileDescriptor, service *pb.Ser
 var generateCommandTemplateCode = `
 var _Default{{.Name}}ClientCommandConfig = _New{{.Name}}ClientCommandConfig()
 
-func init() {
-	_Default{{.Name}}ClientCommandConfig.AddFlags({{.Name}}ClientCommand.PersistentFlags())
-}
-
 type _{{.Name}}ClientCommandConfig struct {
-	ServerAddr string
-	RequestFile string
-	PrintSampleRequest bool
-	ResponseFormat string
-	Timeout time.Duration
-	TLS bool
-	InsecureSkipVerify bool
-	CACertFile string
-	CertFile string
-	KeyFile string
+	ServerAddr string	` + "`" + `envconfig:"SERVER_ADDR" default:"localhost:8080"` + "`" + `
+	RequestFile string	` + "`" + `envconfig:"REQUEST_FILE"` + "`" + `
+	PrintSampleRequest bool	` + "`" + `envconfig:"PRINT_SAMPLE_REQUEST"` + "`" + `
+	ResponseFormat string	` + "`" + `envconfig:"RESPONSE_FORMAT" default:"json"` + "`" + `
+	Timeout time.Duration	` + "`" + `envconfig:"TIMEOUT" default:"10s"` + "`" + `
+	TLS bool		` + "`" + `envconfig:"TLS"` + "`" + `
+	ServerName string	` + "`" + `envconfig:"TLS_SERVER_NAME"` + "`" + `
+	InsecureSkipVerify bool	` + "`" + `envconfig:"TLS_INSECURE_SKIP_VERIFY"` + "`" + `
+	CACertFile string	` + "`" + `envconfig:"TLS_CA_CERT_FILE"` + "`" + `
+	CertFile string		` + "`" + `envconfig:"TLS_CERT_FILE"` + "`" + `
+	KeyFile string		` + "`" + `envconfig:"TLS_KEY_FILE"` + "`" + `
+	AuthToken string	` + "`" + `envconfig:"AUTH_TOKEN"` + "`" + `
+	AuthTokenType string	` + "`" + `envconfig:"AUTH_TOKEN_TYPE" default:"Bearer"` + "`" + `
+	JWTKey string		` + "`" + `envconfig:"JWT_KEY"` + "`" + `
+	JWTKeyFile string	` + "`" + `envconfig:"JWT_KEY_FILE"` + "`" + `
 }
 
 func _New{{.Name}}ClientCommandConfig() *_{{.Name}}ClientCommandConfig {
-	addr := os.Getenv("SERVER_ADDR")
-	if addr == "" {
-		addr = "localhost:8080"
-	}
-	timeout, err := time.ParseDuration(os.Getenv("TIMEOUT"))
-	if err != nil {
-		timeout = 10 * time.Second
-	}
-	outfmt := os.Getenv("RESPONSE_FORMAT")
-	if outfmt == "" {
-		outfmt = "json"
-	}
-	return &_{{.Name}}ClientCommandConfig{
-		ServerAddr: addr,
-		RequestFile: os.Getenv("REQUEST_FILE"),
-		PrintSampleRequest: os.Getenv("PRINT_SAMPLE_REQUEST") != "",
-		ResponseFormat: outfmt,
-		Timeout: timeout,
-		TLS: os.Getenv("TLS") != "",
-		InsecureSkipVerify: os.Getenv("TLS_INSECURE_SKIP_VERIFY") != "",
-		CACertFile: os.Getenv("TLS_CA_CERT_FILE"),
-		CertFile: os.Getenv("TLS_CERT_FILE"),
-		KeyFile: os.Getenv("TLS_KEY_FILE"),
-	}
+	c := &_{{.Name}}ClientCommandConfig{}
+	envconfig.Process("", c)
+	return c
 }
 
 func (o *_{{.Name}}ClientCommandConfig) AddFlags(fs *pflag.FlagSet) {
@@ -196,10 +180,15 @@ func (o *_{{.Name}}ClientCommandConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ResponseFormat, "response-format", "o", o.ResponseFormat, "response format (json, prettyjson, yaml, or xml)")
 	fs.DurationVar(&o.Timeout, "timeout", o.Timeout, "client connection timeout")
 	fs.BoolVar(&o.TLS, "tls", o.TLS, "enable tls")
+	fs.StringVar(&o.ServerName, "tls-server-name", o.ServerName, "tls server name override")
 	fs.BoolVar(&o.InsecureSkipVerify, "tls-insecure-skip-verify", o.InsecureSkipVerify, "INSECURE: skip tls checks")
 	fs.StringVar(&o.CACertFile, "tls-ca-cert-file", o.CACertFile, "ca certificate file")
 	fs.StringVar(&o.CertFile, "tls-cert-file", o.CertFile, "client certificate file")
 	fs.StringVar(&o.KeyFile, "tls-key-file", o.KeyFile, "client key file")
+	fs.StringVar(&o.AuthToken, "auth-token", o.AuthToken, "authorization token")
+	fs.StringVar(&o.AuthTokenType, "auth-token-type", o.AuthTokenType, "authorization token type")
+	fs.StringVar(&o.JWTKey, "jwt-key", o.JWTKey, "jwt key")
+	fs.StringVar(&o.JWTKeyFile, "jwt-key-file", o.JWTKeyFile, "jwt key file")
 }
 
 var {{.Name}}ClientCommand = &cobra.Command{
@@ -213,7 +202,7 @@ func _Dial{{.Name}}() (*grpc.ClientConn, {{.Name}}Client, error) {
 		grpc.WithTimeout(cfg.Timeout),
 	}
 	if cfg.TLS {
-		tlsConfig := tls.Config{}
+		tlsConfig := &tls.Config{}
 		if cfg.InsecureSkipVerify {
 			tlsConfig.InsecureSkipVerify = true
 		}
@@ -236,10 +225,38 @@ func _Dial{{.Name}}() (*grpc.ClientConn, {{.Name}}Client, error) {
 			}
 			tlsConfig.Certificates = []tls.Certificate{pair}
 		}
-		cred := credentials.NewTLS(&tlsConfig)
+		if cfg.ServerName != "" {
+			tlsConfig.ServerName = cfg.ServerName
+		} else {
+			addr, _, _ := net.SplitHostPort(cfg.ServerAddr)
+			tlsConfig.ServerName = addr
+		}
+		//tlsConfig.BuildNameToCertificate()
+		cred := credentials.NewTLS(tlsConfig)
 		opts = append(opts, grpc.WithTransportCredentials(cred))
 	} else {
 		opts = append(opts, grpc.WithInsecure())
+	}
+	if cfg.AuthToken != "" {
+		cred := oauth.NewOauthAccess(&oauth2.Token{
+			AccessToken: cfg.AuthToken,
+			TokenType: cfg.AuthTokenType,
+		})
+		opts = append(opts, grpc.WithPerRPCCredentials(cred))
+	}
+	if cfg.JWTKey != "" {
+		cred, err := oauth.NewJWTAccessFromKey([]byte(cfg.JWTKey))
+		if err != nil {
+			return nil, nil, fmt.Errorf("jwt key: %v", err)
+		}
+		opts = append(opts, grpc.WithPerRPCCredentials(cred))
+	}
+	if cfg.JWTKeyFile != "" {
+		cred, err := oauth.NewJWTAccessFromFile(cfg.JWTKeyFile)
+		if err != nil {
+			return nil, nil, fmt.Errorf("jwt key file: %v", err)
+		}
+		opts = append(opts, grpc.WithPerRPCCredentials(cred))
 	}
 	conn, err := grpc.Dial(cfg.ServerAddr, opts...)
 	if err != nil {
@@ -314,6 +331,18 @@ func (c *client) generateCommand(servName string) {
 var generateSubcommandTemplateCode = `
 var _{{.FullName}}ClientCommand = &cobra.Command{
 	Use: "{{.UseName}}",
+	Long: "{{.Name}} client\n\nYou can use environment variables with the same name of the command flags.\nAll caps and s/-/_, e.g. SERVER_ADDR.",
+	Example: ` + "`" + `
+Save a sample request to a file (or refer to your protobuf descriptor to create one):
+	{{.UseName}} -p > req.json
+
+Submit request using file:
+	{{.UseName}} -f req.json
+
+Authenticate using the Authorization header (requires transport security):
+	export AUTH_TOKEN=your_access_token
+	export SERVER_ADDR=api.example.com:443
+	echo '{json}' | {{.UseName}} --tls` + "`" + `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var v {{.InputType}}
 		err := _{{.ServiceName}}RoundTrip(v, func(cli {{.ServiceName}}Client, in iocodec.Decoder, out iocodec.Encoder) error {
@@ -379,6 +408,7 @@ var _{{.FullName}}ClientCommand = &cobra.Command{
 
 func init() {
 	{{.ServiceName}}ClientCommand.AddCommand(_{{.FullName}}ClientCommand)
+	_Default{{.ServiceName}}ClientCommandConfig.AddFlags(_{{.FullName}}ClientCommand.Flags())
 }
 `
 

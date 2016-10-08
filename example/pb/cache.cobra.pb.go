@@ -10,21 +10,25 @@ import math "math"
 
 import (
 	io "io"
-	json "encoding/json"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
 	log "log"
-	cobra "github.com/spf13/cobra"
-	filepath "path/filepath"
-	ioutil "io/ioutil"
-	time "time"
-	tls "crypto/tls"
-	os "os"
-	pflag "github.com/spf13/pflag"
-	template "text/template"
-	x509 "crypto/x509"
-	context "golang.org/x/net/context"
+	oauth2 "golang.org/x/oauth2"
 	credentials "google.golang.org/grpc/credentials"
 	grpc "google.golang.org/grpc"
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	ioutil "io/ioutil"
+	net "net"
+	tls "crypto/tls"
+	pflag "github.com/spf13/pflag"
+	template "text/template"
+	envconfig "github.com/kelseyhightower/envconfig"
+	filepath "path/filepath"
+	json "encoding/json"
+	oauth "google.golang.org/grpc/credentials/oauth"
+	os "os"
+	cobra "github.com/spf13/cobra"
+	context "golang.org/x/net/context"
+	time "time"
+	x509 "crypto/x509"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -33,22 +37,26 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ cobra.Command
+var _ template.Template
+var _ envconfig.Decoder
 var _ filepath.WalkFunc
-var _ = ioutil.Discard
-var _ time.Time
-var _ tls.Config
+var _ json.Encoder
+var _ oauth.TokenSource
 var _ os.File
 var _ pflag.FlagSet
-var _ template.Template
-var _ x509.Certificate
+var _ cobra.Command
 var _ context.Context
+var _ time.Time
+var _ x509.Certificate
+var _ io.Reader
+var _ iocodec.Encoder
+var _ log.Logger
+var _ oauth2.Token
 var _ credentials.AuthInfo
 var _ grpc.ClientConn
-var _ iocodec.Encoder
-var _ io.Reader
-var _ json.Encoder
-var _ log.Logger
+var _ = ioutil.Discard
+var _ net.IP
+var _ tls.Config
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -56,48 +64,28 @@ const _ = grpc.SupportPackageIsVersion3
 
 var _DefaultCacheClientCommandConfig = _NewCacheClientCommandConfig()
 
-func init() {
-	_DefaultCacheClientCommandConfig.AddFlags(CacheClientCommand.PersistentFlags())
-}
-
 type _CacheClientCommandConfig struct {
-	ServerAddr         string
-	RequestFile        string
-	PrintSampleRequest bool
-	ResponseFormat     string
-	Timeout            time.Duration
-	TLS                bool
-	InsecureSkipVerify bool
-	CACertFile         string
-	CertFile           string
-	KeyFile            string
+	ServerAddr         string        `envconfig:"SERVER_ADDR" default:"localhost:8080"`
+	RequestFile        string        `envconfig:"REQUEST_FILE"`
+	PrintSampleRequest bool          `envconfig:"PRINT_SAMPLE_REQUEST"`
+	ResponseFormat     string        `envconfig:"RESPONSE_FORMAT" default:"json"`
+	Timeout            time.Duration `envconfig:"TIMEOUT" default:"10s"`
+	TLS                bool          `envconfig:"TLS"`
+	ServerName         string        `envconfig:"TLS_SERVER_NAME"`
+	InsecureSkipVerify bool          `envconfig:"TLS_INSECURE_SKIP_VERIFY"`
+	CACertFile         string        `envconfig:"TLS_CA_CERT_FILE"`
+	CertFile           string        `envconfig:"TLS_CERT_FILE"`
+	KeyFile            string        `envconfig:"TLS_KEY_FILE"`
+	AuthToken          string        `envconfig:"AUTH_TOKEN"`
+	AuthTokenType      string        `envconfig:"AUTH_TOKEN_TYPE" default:"Bearer"`
+	JWTKey             string        `envconfig:"JWT_KEY"`
+	JWTKeyFile         string        `envconfig:"JWT_KEY_FILE"`
 }
 
 func _NewCacheClientCommandConfig() *_CacheClientCommandConfig {
-	addr := os.Getenv("SERVER_ADDR")
-	if addr == "" {
-		addr = "localhost:8080"
-	}
-	timeout, err := time.ParseDuration(os.Getenv("TIMEOUT"))
-	if err != nil {
-		timeout = 10 * time.Second
-	}
-	outfmt := os.Getenv("RESPONSE_FORMAT")
-	if outfmt == "" {
-		outfmt = "json"
-	}
-	return &_CacheClientCommandConfig{
-		ServerAddr:         addr,
-		RequestFile:        os.Getenv("REQUEST_FILE"),
-		PrintSampleRequest: os.Getenv("PRINT_SAMPLE_REQUEST") != "",
-		ResponseFormat:     outfmt,
-		Timeout:            timeout,
-		TLS:                os.Getenv("TLS") != "",
-		InsecureSkipVerify: os.Getenv("TLS_INSECURE_SKIP_VERIFY") != "",
-		CACertFile:         os.Getenv("TLS_CA_CERT_FILE"),
-		CertFile:           os.Getenv("TLS_CERT_FILE"),
-		KeyFile:            os.Getenv("TLS_KEY_FILE"),
-	}
+	c := &_CacheClientCommandConfig{}
+	envconfig.Process("", c)
+	return c
 }
 
 func (o *_CacheClientCommandConfig) AddFlags(fs *pflag.FlagSet) {
@@ -107,10 +95,15 @@ func (o *_CacheClientCommandConfig) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ResponseFormat, "response-format", "o", o.ResponseFormat, "response format (json, prettyjson, yaml, or xml)")
 	fs.DurationVar(&o.Timeout, "timeout", o.Timeout, "client connection timeout")
 	fs.BoolVar(&o.TLS, "tls", o.TLS, "enable tls")
+	fs.StringVar(&o.ServerName, "tls-server-name", o.ServerName, "tls server name override")
 	fs.BoolVar(&o.InsecureSkipVerify, "tls-insecure-skip-verify", o.InsecureSkipVerify, "INSECURE: skip tls checks")
 	fs.StringVar(&o.CACertFile, "tls-ca-cert-file", o.CACertFile, "ca certificate file")
 	fs.StringVar(&o.CertFile, "tls-cert-file", o.CertFile, "client certificate file")
 	fs.StringVar(&o.KeyFile, "tls-key-file", o.KeyFile, "client key file")
+	fs.StringVar(&o.AuthToken, "auth-token", o.AuthToken, "authorization token")
+	fs.StringVar(&o.AuthTokenType, "auth-token-type", o.AuthTokenType, "authorization token type")
+	fs.StringVar(&o.JWTKey, "jwt-key", o.JWTKey, "jwt key")
+	fs.StringVar(&o.JWTKeyFile, "jwt-key-file", o.JWTKeyFile, "jwt key file")
 }
 
 var CacheClientCommand = &cobra.Command{
@@ -124,7 +117,7 @@ func _DialCache() (*grpc.ClientConn, CacheClient, error) {
 		grpc.WithTimeout(cfg.Timeout),
 	}
 	if cfg.TLS {
-		tlsConfig := tls.Config{}
+		tlsConfig := &tls.Config{}
 		if cfg.InsecureSkipVerify {
 			tlsConfig.InsecureSkipVerify = true
 		}
@@ -147,10 +140,38 @@ func _DialCache() (*grpc.ClientConn, CacheClient, error) {
 			}
 			tlsConfig.Certificates = []tls.Certificate{pair}
 		}
-		cred := credentials.NewTLS(&tlsConfig)
+		if cfg.ServerName != "" {
+			tlsConfig.ServerName = cfg.ServerName
+		} else {
+			addr, _, _ := net.SplitHostPort(cfg.ServerAddr)
+			tlsConfig.ServerName = addr
+		}
+		//tlsConfig.BuildNameToCertificate()
+		cred := credentials.NewTLS(tlsConfig)
 		opts = append(opts, grpc.WithTransportCredentials(cred))
 	} else {
 		opts = append(opts, grpc.WithInsecure())
+	}
+	if cfg.AuthToken != "" {
+		cred := oauth.NewOauthAccess(&oauth2.Token{
+			AccessToken: cfg.AuthToken,
+			TokenType:   cfg.AuthTokenType,
+		})
+		opts = append(opts, grpc.WithPerRPCCredentials(cred))
+	}
+	if cfg.JWTKey != "" {
+		cred, err := oauth.NewJWTAccessFromKey([]byte(cfg.JWTKey))
+		if err != nil {
+			return nil, nil, fmt.Errorf("jwt key: %v", err)
+		}
+		opts = append(opts, grpc.WithPerRPCCredentials(cred))
+	}
+	if cfg.JWTKeyFile != "" {
+		cred, err := oauth.NewJWTAccessFromFile(cfg.JWTKeyFile)
+		if err != nil {
+			return nil, nil, fmt.Errorf("jwt key file: %v", err)
+		}
+		opts = append(opts, grpc.WithPerRPCCredentials(cred))
 	}
 	conn, err := grpc.Dial(cfg.ServerAddr, opts...)
 	if err != nil {
@@ -204,7 +225,19 @@ func _CacheRoundTrip(sample interface{}, fn _CacheRoundTripFunc) error {
 }
 
 var _CacheSetClientCommand = &cobra.Command{
-	Use: "set",
+	Use:  "set",
+	Long: "Set client\n\nYou can use environment variables with the same name of the command flags.\nAll caps and s/-/_, e.g. SERVER_ADDR.",
+	Example: `
+Save a sample request to a file (or refer to your protobuf descriptor to create one):
+	set -p > req.json
+
+Submit request using file:
+	set -f req.json
+
+Authenticate using the Authorization header (requires transport security):
+	export AUTH_TOKEN=your_access_token
+	export SERVER_ADDR=api.example.com:443
+	echo '{json}' | set --tls`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var v SetRequest
 		err := _CacheRoundTrip(v, func(cli CacheClient, in iocodec.Decoder, out iocodec.Encoder) error {
@@ -231,10 +264,23 @@ var _CacheSetClientCommand = &cobra.Command{
 
 func init() {
 	CacheClientCommand.AddCommand(_CacheSetClientCommand)
+	_DefaultCacheClientCommandConfig.AddFlags(_CacheSetClientCommand.Flags())
 }
 
 var _CacheGetClientCommand = &cobra.Command{
-	Use: "get",
+	Use:  "get",
+	Long: "Get client\n\nYou can use environment variables with the same name of the command flags.\nAll caps and s/-/_, e.g. SERVER_ADDR.",
+	Example: `
+Save a sample request to a file (or refer to your protobuf descriptor to create one):
+	get -p > req.json
+
+Submit request using file:
+	get -f req.json
+
+Authenticate using the Authorization header (requires transport security):
+	export AUTH_TOKEN=your_access_token
+	export SERVER_ADDR=api.example.com:443
+	echo '{json}' | get --tls`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var v GetRequest
 		err := _CacheRoundTrip(v, func(cli CacheClient, in iocodec.Decoder, out iocodec.Encoder) error {
@@ -261,10 +307,23 @@ var _CacheGetClientCommand = &cobra.Command{
 
 func init() {
 	CacheClientCommand.AddCommand(_CacheGetClientCommand)
+	_DefaultCacheClientCommandConfig.AddFlags(_CacheGetClientCommand.Flags())
 }
 
 var _CacheMultiSetClientCommand = &cobra.Command{
-	Use: "multiset",
+	Use:  "multiset",
+	Long: "MultiSet client\n\nYou can use environment variables with the same name of the command flags.\nAll caps and s/-/_, e.g. SERVER_ADDR.",
+	Example: `
+Save a sample request to a file (or refer to your protobuf descriptor to create one):
+	multiset -p > req.json
+
+Submit request using file:
+	multiset -f req.json
+
+Authenticate using the Authorization header (requires transport security):
+	export AUTH_TOKEN=your_access_token
+	export SERVER_ADDR=api.example.com:443
+	echo '{json}' | multiset --tls`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var v SetRequest
 		err := _CacheRoundTrip(v, func(cli CacheClient, in iocodec.Decoder, out iocodec.Encoder) error {
@@ -303,10 +362,23 @@ var _CacheMultiSetClientCommand = &cobra.Command{
 
 func init() {
 	CacheClientCommand.AddCommand(_CacheMultiSetClientCommand)
+	_DefaultCacheClientCommandConfig.AddFlags(_CacheMultiSetClientCommand.Flags())
 }
 
 var _CacheMultiGetClientCommand = &cobra.Command{
-	Use: "multiget",
+	Use:  "multiget",
+	Long: "MultiGet client\n\nYou can use environment variables with the same name of the command flags.\nAll caps and s/-/_, e.g. SERVER_ADDR.",
+	Example: `
+Save a sample request to a file (or refer to your protobuf descriptor to create one):
+	multiget -p > req.json
+
+Submit request using file:
+	multiget -f req.json
+
+Authenticate using the Authorization header (requires transport security):
+	export AUTH_TOKEN=your_access_token
+	export SERVER_ADDR=api.example.com:443
+	echo '{json}' | multiget --tls`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var v GetRequest
 		err := _CacheRoundTrip(v, func(cli CacheClient, in iocodec.Decoder, out iocodec.Encoder) error {
@@ -350,4 +422,5 @@ var _CacheMultiGetClientCommand = &cobra.Command{
 
 func init() {
 	CacheClientCommand.AddCommand(_CacheMultiGetClientCommand)
+	_DefaultCacheClientCommandConfig.AddFlags(_CacheMultiGetClientCommand.Flags())
 }
