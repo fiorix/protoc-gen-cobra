@@ -9,25 +9,26 @@ import fmt "fmt"
 import math "math"
 
 import (
+	cobra "github.com/spf13/cobra"
 	io "io"
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	net "net"
+	template "text/template"
+	context "golang.org/x/net/context"
+	envconfig "github.com/kelseyhightower/envconfig"
+	ioutil "io/ioutil"
 	log "log"
 	oauth2 "golang.org/x/oauth2"
 	credentials "google.golang.org/grpc/credentials"
-	grpc "google.golang.org/grpc"
-	ioutil "io/ioutil"
-	net "net"
-	tls "crypto/tls"
-	pflag "github.com/spf13/pflag"
-	template "text/template"
-	envconfig "github.com/kelseyhightower/envconfig"
-	filepath "path/filepath"
 	json "encoding/json"
-	oauth "google.golang.org/grpc/credentials/oauth"
 	os "os"
-	cobra "github.com/spf13/cobra"
-	context "golang.org/x/net/context"
+	pflag "github.com/spf13/pflag"
 	time "time"
+	codes "google.golang.org/grpc/codes"
+	filepath "path/filepath"
+	grpc "google.golang.org/grpc"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	oauth "google.golang.org/grpc/credentials/oauth"
+	tls "crypto/tls"
 	x509 "crypto/x509"
 )
 
@@ -37,26 +38,27 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ template.Template
+var _ = ioutil.Discard
+var _ log.Logger
+var _ oauth2.Token
+var _ context.Context
 var _ envconfig.Decoder
-var _ filepath.WalkFunc
+var _ credentials.AuthInfo
 var _ json.Encoder
+var _ grpc.ClientConn
+var _ iocodec.Encoder
 var _ oauth.TokenSource
 var _ os.File
 var _ pflag.FlagSet
-var _ cobra.Command
-var _ context.Context
 var _ time.Time
-var _ x509.Certificate
-var _ io.Reader
-var _ iocodec.Encoder
-var _ log.Logger
-var _ oauth2.Token
-var _ credentials.AuthInfo
-var _ grpc.ClientConn
-var _ = ioutil.Discard
-var _ net.IP
+var _ codes.Code
+var _ filepath.WalkFunc
 var _ tls.Config
+var _ x509.Certificate
+var _ net.IP
+var _ template.Template
+var _ cobra.Command
+var _ io.Reader
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -335,6 +337,7 @@ Authenticate using the Authorization header (requires transport security):
 			for {
 				err = in.Decode(&v)
 				if err == io.EOF {
+					stream.CloseSend()
 					break
 				}
 				if err != nil {
@@ -390,6 +393,7 @@ Authenticate using the Authorization header (requires transport security):
 			for {
 				err = in.Decode(&v)
 				if err == io.EOF {
+					stream.CloseSend()
 					break
 				}
 				if err != nil {
@@ -403,6 +407,9 @@ Authenticate using the Authorization header (requires transport security):
 
 			for {
 				v, err := stream.Recv()
+				if grpc.Code(err) == codes.OutOfRange { // EOF
+					break
+				}
 				if err != nil {
 					return err
 				}

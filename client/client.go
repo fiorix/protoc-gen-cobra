@@ -52,6 +52,7 @@ type pkgInfo struct {
 
 var importPkgs = importPkg{
 	"cobra":       {ImportPath: "github.com/spf13/cobra", KnownType: "Command"},
+	"codes":       {ImportPath: "google.golang.org/grpc/codes", KnownType: "Code"},
 	"context":     {ImportPath: "golang.org/x/net/context", KnownType: "Context"},
 	"credentials": {ImportPath: "google.golang.org/grpc/credentials", KnownType: "AuthInfo"},
 	"envconfig":   {ImportPath: "github.com/kelseyhightower/envconfig", KnownType: "Decoder"},
@@ -354,6 +355,7 @@ Authenticate using the Authorization header (requires transport security):
 			for {
 				err = in.Decode(&v)
 				if err == io.EOF {
+					stream.CloseSend()
 					break
 				}
 				if err != nil {
@@ -381,6 +383,9 @@ Authenticate using the Authorization header (requires transport security):
 {{if .ServerStream}}
 			for {
 				v, err := stream.Recv()
+				if grpc.Code(err) == codes.OutOfRange { // EOF
+					break
+				}
 				if err != nil {
 					return err
 				}

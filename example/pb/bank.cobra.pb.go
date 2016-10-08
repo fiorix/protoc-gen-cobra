@@ -23,26 +23,27 @@ import fmt "fmt"
 import math "math"
 
 import (
-	envconfig "github.com/kelseyhightower/envconfig"
-	filepath "path/filepath"
 	json "encoding/json"
+	credentials "google.golang.org/grpc/credentials"
+	filepath "path/filepath"
+	grpc "google.golang.org/grpc"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
 	oauth "google.golang.org/grpc/credentials/oauth"
 	os "os"
 	pflag "github.com/spf13/pflag"
+	time "time"
+	codes "google.golang.org/grpc/codes"
+	x509 "crypto/x509"
+	tls "crypto/tls"
+	io "io"
+	net "net"
 	template "text/template"
 	cobra "github.com/spf13/cobra"
-	context "golang.org/x/net/context"
-	time "time"
-	x509 "crypto/x509"
-	io "io"
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	envconfig "github.com/kelseyhightower/envconfig"
+	ioutil "io/ioutil"
 	log "log"
 	oauth2 "golang.org/x/oauth2"
-	credentials "google.golang.org/grpc/credentials"
-	grpc "google.golang.org/grpc"
-	ioutil "io/ioutil"
-	net "net"
-	tls "crypto/tls"
+	context "golang.org/x/net/context"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -57,26 +58,27 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Reference imports to suppress errors if they are not otherwise used.
+var _ cobra.Command
+var _ io.Reader
+var _ net.IP
+var _ template.Template
+var _ context.Context
+var _ envconfig.Decoder
+var _ = ioutil.Discard
 var _ log.Logger
 var _ oauth2.Token
-var _ io.Reader
-var _ iocodec.Encoder
-var _ = ioutil.Discard
-var _ net.IP
-var _ tls.Config
 var _ credentials.AuthInfo
-var _ grpc.ClientConn
 var _ json.Encoder
-var _ oauth.TokenSource
 var _ os.File
 var _ pflag.FlagSet
-var _ template.Template
-var _ envconfig.Decoder
-var _ filepath.WalkFunc
 var _ time.Time
+var _ codes.Code
+var _ filepath.WalkFunc
+var _ grpc.ClientConn
+var _ iocodec.Encoder
+var _ oauth.TokenSource
+var _ tls.Config
 var _ x509.Certificate
-var _ cobra.Command
-var _ context.Context
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.

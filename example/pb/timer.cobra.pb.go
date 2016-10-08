@@ -10,25 +10,26 @@ import math "math"
 
 import (
 	cobra "github.com/spf13/cobra"
-	context "golang.org/x/net/context"
-	time "time"
-	x509 "crypto/x509"
 	io "io"
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	net "net"
+	template "text/template"
+	context "golang.org/x/net/context"
+	envconfig "github.com/kelseyhightower/envconfig"
+	ioutil "io/ioutil"
 	log "log"
 	oauth2 "golang.org/x/oauth2"
 	credentials "google.golang.org/grpc/credentials"
-	grpc "google.golang.org/grpc"
-	ioutil "io/ioutil"
-	net "net"
-	tls "crypto/tls"
-	envconfig "github.com/kelseyhightower/envconfig"
-	filepath "path/filepath"
 	json "encoding/json"
+	time "time"
+	codes "google.golang.org/grpc/codes"
+	filepath "path/filepath"
+	grpc "google.golang.org/grpc"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
 	oauth "google.golang.org/grpc/credentials/oauth"
 	os "os"
 	pflag "github.com/spf13/pflag"
-	template "text/template"
+	tls "crypto/tls"
+	x509 "crypto/x509"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -37,26 +38,27 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 // Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ envconfig.Decoder
+var _ = ioutil.Discard
 var _ log.Logger
 var _ oauth2.Token
-var _ io.Reader
-var _ iocodec.Encoder
-var _ = ioutil.Discard
-var _ net.IP
-var _ tls.Config
 var _ credentials.AuthInfo
-var _ grpc.ClientConn
 var _ json.Encoder
+var _ time.Time
+var _ codes.Code
+var _ filepath.WalkFunc
+var _ grpc.ClientConn
+var _ iocodec.Encoder
 var _ oauth.TokenSource
 var _ os.File
 var _ pflag.FlagSet
-var _ template.Template
-var _ envconfig.Decoder
-var _ filepath.WalkFunc
-var _ time.Time
+var _ tls.Config
 var _ x509.Certificate
 var _ cobra.Command
-var _ context.Context
+var _ io.Reader
+var _ net.IP
+var _ template.Template
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -255,6 +257,9 @@ Authenticate using the Authorization header (requires transport security):
 
 			for {
 				v, err := stream.Recv()
+				if grpc.Code(err) == codes.OutOfRange { // EOF
+					break
+				}
 				if err != nil {
 					return err
 				}
