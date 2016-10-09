@@ -23,27 +23,26 @@ import fmt "fmt"
 import math "math"
 
 import (
-	json "encoding/json"
+	cobra "github.com/spf13/cobra"
+	context "golang.org/x/net/context"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	net "net"
+	oauth "google.golang.org/grpc/credentials/oauth"
+	oauth2 "golang.org/x/oauth2"
+	pflag "github.com/spf13/pflag"
+	tls "crypto/tls"
+	time "time"
 	credentials "google.golang.org/grpc/credentials"
+	envconfig "github.com/kelseyhightower/envconfig"
+	io "io"
+	json "encoding/json"
+	os "os"
+	x509 "crypto/x509"
 	filepath "path/filepath"
 	grpc "google.golang.org/grpc"
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
-	oauth "google.golang.org/grpc/credentials/oauth"
-	os "os"
-	pflag "github.com/spf13/pflag"
-	time "time"
-	codes "google.golang.org/grpc/codes"
-	x509 "crypto/x509"
-	tls "crypto/tls"
-	io "io"
-	net "net"
-	template "text/template"
-	cobra "github.com/spf13/cobra"
-	envconfig "github.com/kelseyhightower/envconfig"
 	ioutil "io/ioutil"
 	log "log"
-	oauth2 "golang.org/x/oauth2"
-	context "golang.org/x/net/context"
+	template "text/template"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -58,26 +57,25 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ cobra.Command
-var _ io.Reader
-var _ net.IP
-var _ template.Template
-var _ context.Context
-var _ envconfig.Decoder
-var _ = ioutil.Discard
-var _ log.Logger
-var _ oauth2.Token
-var _ credentials.AuthInfo
-var _ json.Encoder
-var _ os.File
-var _ pflag.FlagSet
-var _ time.Time
-var _ codes.Code
 var _ filepath.WalkFunc
 var _ grpc.ClientConn
-var _ iocodec.Encoder
-var _ oauth.TokenSource
+var _ = ioutil.Discard
+var _ log.Logger
+var _ template.Template
+var _ pflag.FlagSet
 var _ tls.Config
+var _ cobra.Command
+var _ context.Context
+var _ iocodec.Encoder
+var _ net.IP
+var _ oauth.TokenSource
+var _ oauth2.Token
+var _ time.Time
+var _ credentials.AuthInfo
+var _ envconfig.Decoder
+var _ io.Reader
+var _ json.Encoder
+var _ os.File
 var _ x509.Certificate
 
 // This is a compile-time assertion to ensure that this generated file

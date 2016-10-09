@@ -54,6 +54,9 @@ func (c *Cache) MultiSet(stream pb.Cache_MultiSetServer) error {
 func (c *Cache) MultiGet(stream pb.Cache_MultiGetServer) error {
 	for {
 		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
 			return err
 		}

@@ -9,27 +9,26 @@ import fmt "fmt"
 import math "math"
 
 import (
-	cobra "github.com/spf13/cobra"
-	io "io"
-	net "net"
-	template "text/template"
-	context "golang.org/x/net/context"
 	envconfig "github.com/kelseyhightower/envconfig"
-	ioutil "io/ioutil"
-	log "log"
-	oauth2 "golang.org/x/oauth2"
-	credentials "google.golang.org/grpc/credentials"
+	io "io"
 	json "encoding/json"
 	os "os"
-	pflag "github.com/spf13/pflag"
-	time "time"
-	codes "google.golang.org/grpc/codes"
-	filepath "path/filepath"
-	grpc "google.golang.org/grpc"
-	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
-	oauth "google.golang.org/grpc/credentials/oauth"
-	tls "crypto/tls"
 	x509 "crypto/x509"
+	credentials "google.golang.org/grpc/credentials"
+	grpc "google.golang.org/grpc"
+	ioutil "io/ioutil"
+	log "log"
+	template "text/template"
+	filepath "path/filepath"
+	context "golang.org/x/net/context"
+	iocodec "github.com/fiorix/protoc-gen-cobra/iocodec"
+	net "net"
+	oauth "google.golang.org/grpc/credentials/oauth"
+	oauth2 "golang.org/x/oauth2"
+	pflag "github.com/spf13/pflag"
+	tls "crypto/tls"
+	cobra "github.com/spf13/cobra"
+	time "time"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -38,27 +37,26 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 // Reference imports to suppress errors if they are not otherwise used.
+var _ oauth.TokenSource
+var _ oauth2.Token
+var _ pflag.FlagSet
+var _ tls.Config
+var _ cobra.Command
+var _ context.Context
+var _ iocodec.Encoder
+var _ net.IP
+var _ time.Time
+var _ os.File
+var _ x509.Certificate
+var _ credentials.AuthInfo
+var _ envconfig.Decoder
+var _ io.Reader
+var _ json.Encoder
+var _ template.Template
+var _ filepath.WalkFunc
+var _ grpc.ClientConn
 var _ = ioutil.Discard
 var _ log.Logger
-var _ oauth2.Token
-var _ context.Context
-var _ envconfig.Decoder
-var _ credentials.AuthInfo
-var _ json.Encoder
-var _ grpc.ClientConn
-var _ iocodec.Encoder
-var _ oauth.TokenSource
-var _ os.File
-var _ pflag.FlagSet
-var _ time.Time
-var _ codes.Code
-var _ filepath.WalkFunc
-var _ tls.Config
-var _ x509.Certificate
-var _ net.IP
-var _ template.Template
-var _ cobra.Command
-var _ io.Reader
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -407,7 +405,7 @@ Authenticate using the Authorization header (requires transport security):
 
 			for {
 				v, err := stream.Recv()
-				if grpc.Code(err) == codes.OutOfRange { // EOF
+				if err == io.EOF {
 					break
 				}
 				if err != nil {
