@@ -24,7 +24,7 @@ import (
 // It is incremented whenever an incompatibility between the generated code and
 // the grpc package is introduced; the generated code references
 // a constant, grpc.SupportPackageIsVersionN (where N is generatedCodeVersion).
-const generatedCodeVersion = 3
+const generatedCodeVersion = 4
 
 func init() {
 	generator.RegisterPlugin(new(client))
