@@ -10,6 +10,7 @@ package client
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"path"
 	"strconv"
@@ -111,7 +112,7 @@ func (c *client) Generate(file *generator.FileDescriptor) {
 }
 
 // GenerateImports generates the import declaration for this file.
-func (c *client) GenerateImports(file *generator.FileDescriptor) {
+func (c *client) GenerateImports(file *generator.FileDescriptor, imports []*generator.FileDescriptor) {
 	if len(file.FileDescriptorProto.Service) == 0 {
 		return
 	}
@@ -119,6 +120,36 @@ func (c *client) GenerateImports(file *generator.FileDescriptor) {
 	for _, v := range importPkgs {
 		c.P(v.UniqueName, " ", strconv.Quote(path.Join(c.gen.ImportPrefix, v.ImportPath)))
 	}
+
+	importPathByPackage := map[string]string{}
+	for _, imp := range imports {
+		if *file.Package == *imp.Package {
+			continue
+		}
+		if imp.FileDescriptorProto.GetOptions().GetGoPackage() != "" {
+			importPathByPackage[*imp.FileDescriptorProto.Package] = strconv.Quote(*imp.FileDescriptorProto.Options.GoPackage)
+		} else {
+			importPathByPackage[*imp.FileDescriptorProto.Package] = strconv.Quote(path.Join(c.gen.ImportPrefix, *imp.FileDescriptorProto.Package))
+		}
+	}
+
+	importedPackages := map[string]string{}
+	for _, service := range file.FileDescriptorProto.Service {
+		for _, method := range service.Method {
+			_, typ := path.Split(method.GetInputType()) // e.g. `.pkg.Type`
+			typz := strings.SplitN(typ, ".", 3)
+			if len(typz) < 2 {
+				continue
+			}
+			if importPath, found := importPathByPackage[typz[1]]; found {
+				importedPackages[inputPackageName(typz[1])] = importPath
+			}
+		}
+	}
+	for n, p := range importedPackages {
+		c.P(n, " ", p)
+	}
+
 	c.P(")")
 	c.P()
 }
@@ -141,7 +172,7 @@ func (c *client) generateService(file *generator.FileDescriptor, service *pb.Ser
 	c.generateCommand(servName)
 	c.P()
 	for _, method := range service.Method {
-		c.generateSubcommand(servName, method)
+		c.generateSubcommand(servName, file, method)
 	}
 	c.P()
 }
@@ -344,7 +375,7 @@ Authenticate using the Authorization header (requires transport security):
 	export SERVER_ADDR=api.example.com:443
 	echo '{json}' | {{.UseName}} --tls` + "`" + `,
 	Run: func(cmd *cobra.Command, args []string) {
-		var v {{.InputType}}
+		var v {{ with .InputPackage }}{{ . }}.{{ end }}{{.InputType}}
 		err := _{{.ServiceName}}RoundTrip(v, func(cli {{.ServiceName}}Client, in iocodec.Decoder, out iocodec.Encoder) error {
 {{if .ClientStream}}
 			stream, err := cli.{{.Name}}(context.Background())
@@ -418,7 +449,7 @@ func init() {
 
 var generateSubcommandTemplate = template.Must(template.New("subcmd").Parse(generateSubcommandTemplateCode))
 
-func (c *client) generateSubcommand(servName string, method *pb.MethodDescriptorProto) {
+func (c *client) generateSubcommand(servName string, file *generator.FileDescriptor, method *pb.MethodDescriptorProto) {
 	/*
 		if method.GetClientStreaming() || method.GetServerStreaming() {
 			return // TODO: handle streams correctly
@@ -434,13 +465,20 @@ func (c *client) generateSubcommand(servName string, method *pb.MethodDescriptor
 	if len(typz) < 2 {
 		return
 	}
-	typ = typz[2]
-	var b bytes.Buffer
+	var (
+		inputPackage string
+		inputType    = typz[2]
+		b            bytes.Buffer
+	)
+	if typz[1] != file.PackageName() {
+		inputPackage = inputPackageName(typz[1])
+	}
 	err := generateSubcommandTemplate.Execute(&b, struct {
 		Name         string
 		UseName      string
 		ServiceName  string
 		FullName     string
+		InputPackage string
 		InputType    string
 		ClientStream bool
 		ServerStream bool
@@ -449,7 +487,8 @@ func (c *client) generateSubcommand(servName string, method *pb.MethodDescriptor
 		UseName:      strings.ToLower(methName),
 		ServiceName:  servName,
 		FullName:     servName + methName,
-		InputType:    typ,
+		InputPackage: inputPackage,
+		InputType:    inputType,
 		ClientStream: method.GetClientStreaming(),
 		ServerStream: method.GetServerStreaming(),
 	})
@@ -458,4 +497,8 @@ func (c *client) generateSubcommand(servName string, method *pb.MethodDescriptor
 	}
 	c.P(b.String())
 	c.P()
+}
+
+func inputPackageName(s string) string {
+	return fmt.Sprintf("%s_pbimport", s)
 }
