@@ -136,13 +136,10 @@ func (c *client) GenerateImports(file *generator.FileDescriptor, imports []*gene
 	importedPackages := map[string]string{}
 	for _, service := range file.FileDescriptorProto.Service {
 		for _, method := range service.Method {
-			_, typ := path.Split(method.GetInputType()) // e.g. `.pkg.Type`
-			typz := strings.SplitN(typ, ".", 3)
-			if len(typz) < 2 {
-				continue
-			}
-			if importPath, found := importPathByPackage[typz[1]]; found {
-				importedPackages[inputPackageName(typz[1])] = importPath
+			importName, pkg, _ := inputNames(method.GetInputType())
+
+			if importPath, found := importPathByPackage[pkg]; found {
+				importedPackages[importName] = importPath
 			}
 		}
 	}
@@ -460,19 +457,11 @@ func (c *client) generateSubcommand(servName string, file *generator.FileDescrip
 	if reservedClientName[methName] {
 		methName += "_"
 	}
-	_, typ := path.Split(method.GetInputType()) // e.g. `.pkg.Type`
-	typz := strings.SplitN(typ, ".", 3)
-	if len(typz) < 2 {
-		return
+	importName, inputPackage, inputType := inputNames(method.GetInputType())
+	if inputPackage == file.PackageName() {
+		importName = ""
 	}
-	var (
-		inputPackage string
-		inputType    = typz[2]
-		b            bytes.Buffer
-	)
-	if typz[1] != file.PackageName() {
-		inputPackage = inputPackageName(typz[1])
-	}
+	var b bytes.Buffer
 	err := generateSubcommandTemplate.Execute(&b, struct {
 		Name         string
 		UseName      string
@@ -487,7 +476,7 @@ func (c *client) generateSubcommand(servName string, file *generator.FileDescrip
 		UseName:      strings.ToLower(methName),
 		ServiceName:  servName,
 		FullName:     servName + methName,
-		InputPackage: inputPackage,
+		InputPackage: importName,
 		InputType:    inputType,
 		ClientStream: method.GetClientStreaming(),
 		ServerStream: method.GetServerStreaming(),
@@ -499,6 +488,22 @@ func (c *client) generateSubcommand(servName string, file *generator.FileDescrip
 	c.P()
 }
 
-func inputPackageName(s string) string {
-	return fmt.Sprintf("%s_pbimport", s)
+func inputNames(s string) (importName, inputPackage, inputType string) {
+	_, typ := path.Split(s) // e.g. `.pkg.Type`
+	typz := strings.Split(strings.Trim(typ, `.`), ".")
+	if len(typz) < 2 {
+		return
+	}
+	typeIdx := len(typz) - 1
+
+	// .pkg.subpkg.Type -> pkg_subpkg_pb
+	importName = fmt.Sprintf("%s_pb", strings.Join(typz[:typeIdx], `_`))
+
+	// .pkg.subpkg.Type -> pkg.subpkg
+	inputPackage = strings.Join(typz[:typeIdx], `.`)
+
+	// .pkg.subpkg.Type -> Type
+	inputType = typz[typeIdx]
+
+	return
 }
