@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"html/template"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -51,7 +52,7 @@ type pkgInfo struct {
 	UniqueName string
 }
 
-var importPkgs = importPkg{
+var importPkgsByName = importPkg{
 	"cobra":       {ImportPath: "github.com/spf13/cobra", KnownType: "Command"},
 	"context":     {ImportPath: "golang.org/x/net/context", KnownType: "Context"},
 	"credentials": {ImportPath: "google.golang.org/grpc/credentials", KnownType: "AuthInfo"},
@@ -73,13 +74,16 @@ var importPkgs = importPkg{
 	"tls":         {ImportPath: "crypto/tls", KnownType: "Config"},
 	"x509":        {ImportPath: "crypto/x509", KnownType: "Certificate"},
 }
+var sortedImportPkgNames = make([]string, 0, len(importPkgsByName))
 
 // Init initializes the plugin.
 func (c *client) Init(gen *generator.Generator) {
 	c.gen = gen
-	for k := range importPkgs {
-		importPkgs[k].UniqueName = generator.RegisterUniquePackageName(k, nil)
+	for k := range importPkgsByName {
+		importPkgsByName[k].UniqueName = generator.RegisterUniquePackageName(k, nil)
+		sortedImportPkgNames = append(sortedImportPkgNames, k)
 	}
+	sort.Strings(sortedImportPkgNames)
 }
 
 // P forwards to c.gen.P.
@@ -92,7 +96,8 @@ func (c *client) Generate(file *generator.FileDescriptor) {
 	}
 
 	c.P("// Reference imports to suppress errors if they are not otherwise used.")
-	for _, v := range importPkgs {
+	for _, n := range sortedImportPkgNames {
+		v := importPkgsByName[n]
 		if strings.HasPrefix(v.KnownType, "=") {
 			c.P("var _ = ", v.UniqueName, ".", v.KnownType[1:])
 		} else {
@@ -103,7 +108,7 @@ func (c *client) Generate(file *generator.FileDescriptor) {
 	// Assert version compatibility.
 	c.P("// This is a compile-time assertion to ensure that this generated file")
 	c.P("// is compatible with the grpc package it is being compiled against.")
-	c.P("const _ = ", importPkgs["grpc"].UniqueName, ".SupportPackageIsVersion", generatedCodeVersion)
+	c.P("const _ = ", importPkgsByName["grpc"].UniqueName, ".SupportPackageIsVersion", generatedCodeVersion)
 	c.P()
 
 	for i, service := range file.FileDescriptorProto.Service {
@@ -117,7 +122,8 @@ func (c *client) GenerateImports(file *generator.FileDescriptor, imports []*gene
 		return
 	}
 	c.P("import (")
-	for _, v := range importPkgs {
+	for _, n := range sortedImportPkgNames {
+		v := importPkgsByName[n]
 		c.P(v.UniqueName, " ", strconv.Quote(path.Join(c.gen.ImportPrefix, v.ImportPath)))
 	}
 
@@ -133,18 +139,23 @@ func (c *client) GenerateImports(file *generator.FileDescriptor, imports []*gene
 		}
 	}
 
-	importedPackages := map[string]string{}
+	importedPackagesByName := map[string]string{}
 	for _, service := range file.FileDescriptorProto.Service {
 		for _, method := range service.Method {
 			importName, pkg, _ := inputNames(method.GetInputType())
 
 			if importPath, found := importPathByPackage[pkg]; found {
-				importedPackages[importName] = importPath
+				importedPackagesByName[importName] = importPath
 			}
 		}
 	}
-	for n, p := range importedPackages {
-		c.P(n, " ", p)
+	importedPackageNames := make([]string, 0, len(importedPackagesByName))
+	for n := range importedPackagesByName {
+		importedPackageNames = append(importedPackageNames, n)
+	}
+	sort.Strings(importedPackageNames)
+	for _, n := range importedPackageNames {
+		c.P(n, " ", importedPackagesByName[n])
 	}
 
 	c.P(")")
@@ -153,7 +164,7 @@ func (c *client) GenerateImports(file *generator.FileDescriptor, imports []*gene
 
 // reservedClientName records whether a client name is reserved on the client side.
 var reservedClientName = map[string]bool{
-// TODO: do we need any in gRPC?
+	// TODO: do we need any in gRPC?
 }
 
 // generateService generates all the code for the named service.
