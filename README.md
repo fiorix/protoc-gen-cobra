@@ -1,3 +1,7 @@
+# ⛔ DEPRECATED
+
+This repository is no longer actively maintained. All future work has moved [here](https://github.com/NathanBaulch/protoc-gen-cobra).
+
 # protoc-gen-cobra
 
 Cobra command line tool generator for Go gRPC.
